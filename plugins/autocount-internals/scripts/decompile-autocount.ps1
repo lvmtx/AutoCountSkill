@@ -10,7 +10,13 @@
   having their own install to back it.
 
   For each AutoCount product folder found under "Program Files\AutoCount" and
-  "Program Files (x86)\AutoCount", every top-level .exe/.dll is decompiled with ilspycmd.
+  "Program Files (x86)\AutoCount", every top-level .exe/.dll whose name starts with
+  "AutoCount" is decompiled with ilspycmd. That filter matters: a product folder like
+  Accounting's typically has ~35 AutoCount-authored DLLs sitting next to ~135 third-party
+  ones (DevExpress, CefSharp, gRPC, EF Core...) that together are hundreds of MB on disk -
+  several times that once decompiled to C#. Nobody's going to read DevExpress's source to
+  answer an AutoCount question, so skip it; use -IncludeVendor if you genuinely need it.
+
   Modern .NET apps are often published as a single-file bundle (a native launcher with the
   managed assembly appended) - ilspycmd can't read those directly, so this script detects
   that case and uses sfextract to pull the real managed DLL out first, then decompiles that.
@@ -25,19 +31,32 @@
   Explicit list of install directories to decompile, if you don't want auto-detection
   (e.g. AutoCount installed somewhere non-standard).
 
+.PARAMETER NamePattern
+  Wildcard filter on assembly (file) name, applied before deciding what to decompile.
+  Defaults to "AutoCount*" - AutoCount's own code only. Widen it (e.g. "*") to also pull in
+  a specific vendor library or your own company's SDK if one is bundled alongside AutoCount.
+
+.PARAMETER IncludeVendor
+  Shorthand for -NamePattern "*" - decompile everything, including third-party dependencies.
+  Expect this to take much longer and use much more disk space (low GB range, not tens of MB).
+
 .PARAMETER Force
   Re-decompile products even if output already exists for them.
 
 .EXAMPLE
   .\decompile-autocount.ps1
-  Auto-detects installed AutoCount products and decompiles anything new.
+  Auto-detects installed AutoCount products and decompiles their AutoCount-authored DLLs.
 #>
 
 param(
     [string]$OutputRoot = "$env:LOCALAPPDATA\AutoCountInternals\decompiled",
     [string[]]$ProductPaths,
+    [string]$NamePattern = "AutoCount*",
+    [switch]$IncludeVendor,
     [switch]$Force
 )
+
+if ($IncludeVendor) { $NamePattern = "*" }
 
 # "Continue" (not "Stop"): native tools (ilspycmd/sfextract) writing to stderr get wrapped by
 # PowerShell into non-terminating ErrorRecords when merged via 2>&1 below - under "Stop" that
@@ -98,7 +117,12 @@ foreach ($productPath in $ProductPaths) {
     }
 
     Write-Host "=== $productName ==="
-    $binaries = Get-ChildItem $productPath -File | Where-Object { $_.Extension -in ".exe", ".dll" }
+    $allBinaries = Get-ChildItem $productPath -File | Where-Object { $_.Extension -in ".exe", ".dll" }
+    $binaries = $allBinaries | Where-Object { $_.BaseName -like $NamePattern }
+    $skippedVendorCount = $allBinaries.Count - $binaries.Count
+    if ($skippedVendorCount -gt 0) {
+        Write-Host "  ($skippedVendorCount third-party DLLs not matching '$NamePattern' skipped - use -IncludeVendor to decompile them too)"
+    }
 
     foreach ($bin in $binaries) {
         $base = $bin.BaseName
@@ -129,7 +153,7 @@ foreach ($productPath in $ProductPaths) {
             # Decompile the entry point plus every AutoCount-authored assembly found in the
             # bundle; skip the hundreds of third-party framework DLLs that ship alongside it.
             $entryLine = $bundleProbe | Select-String -Pattern "Entry point:\s*(\S+)"
-            $ownAssemblies = Get-ChildItem $bundleDir -Filter "AutoCount*.dll" -ErrorAction SilentlyContinue
+            $ownAssemblies = Get-ChildItem $bundleDir -Filter "*.dll" -ErrorAction SilentlyContinue | Where-Object { $_.BaseName -like $NamePattern }
             if ($entryLine) {
                 $entryDll = Get-ChildItem $bundleDir -Filter $entryLine.Matches[0].Groups[1].Value -ErrorAction SilentlyContinue
                 if ($entryDll) { $ownAssemblies = @($entryDll) + @($ownAssemblies | Where-Object { $_.Name -ne $entryDll.Name }) }
