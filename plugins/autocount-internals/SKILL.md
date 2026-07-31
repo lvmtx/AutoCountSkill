@@ -36,8 +36,10 @@ this skill" whenever this skill triggers) — that works whether this was instal
 standalone skill or as part of a plugin.
 
 It installs the two small dotnet CLI tools it needs (`ilspycmd`, `sfextract`) if they're
-missing, then decompiles every product it finds. Takes a few minutes. Safe to re-run —
-it skips products it's already decompiled unless you pass `-Force`.
+missing, then decompiles every product it finds. Takes a few minutes; expect a few hundred
+MB total (AutoCount's own code only — third-party DLLs like DevExpress are skipped by
+default since decompiling those too would run into low-GB territory for no benefit). Safe
+to re-run — it skips products it's already decompiled unless you pass `-Force`.
 
 **Decompiled-code caveats** — this is compiler output, not the original source, so expect:
 - No comments, no original local-variable intent beyond the name itself.
