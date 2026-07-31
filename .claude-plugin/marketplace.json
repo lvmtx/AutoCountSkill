@@ -1,0 +1,15 @@
+{
+  "name": "autocount-team-tools",
+  "owner": {
+    "name": "Daxonet"
+  },
+  "description": "Internal Daxonet plugins for AutoCount development.",
+  "plugins": [
+    {
+      "name": "autocount-internals",
+      "source": "./plugins/autocount-internals",
+      "description": "Navigate decompiled C# source for AutoCount ERP (Accounting, POS, Server).",
+      "version": "1.0.0"
+    }
+  ]
+}
