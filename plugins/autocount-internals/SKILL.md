@@ -1,6 +1,6 @@
 ---
 name: autocount-internals
-description: Navigate decompiled C# source for AutoCount ERP (Accounting, POS, Server/services) to answer "how does AutoCount do X", "where is Y implemented", "trace the flow of Z" questions. Use this whenever the user asks about AutoCount's internal behavior, business logic, data flow, a specific AutoCount module (GL, ARAP, GST, EInvoice, Stock, POS payment/promotion/eWallet, the AutoCountServerService/CostingService Windows services, etc.), or wants to find where some AutoCount feature, bug, or calculation lives in code — even if they don't say "decompiled" or "source code" explicitly, and even if they just paste an AutoCount error message, class name, or SQL migration filename and ask what it means.
+description: Navigate decompiled C# source for AutoCount ERP (Accounting, POS, Server/services) AND the official AutoCount Wiki (wiki.autocountsoft.com) to answer "how does AutoCount do X", "where is Y implemented", "trace the flow of Z" questions, explain an AutoCount error message, or find documented troubleshooting/config steps. Use this whenever the user asks about AutoCount's internal behavior, business logic, data flow, a specific AutoCount module (GL, ARAP, GST, EInvoice, Stock, POS payment/promotion/eWallet, the AutoCountServerService/CostingService Windows services, etc.), or wants to find where some AutoCount feature, bug, or calculation lives in code — even if they don't say "decompiled" or "source code" explicitly, and even if they just paste an AutoCount error message, class name, or SQL migration filename and ask what it means.
 ---
 
 # AutoCount Internals
@@ -50,7 +50,24 @@ to re-run — it skips products it's already decompiled unless you pass `-Force`
 - Some UI files are huge generated `InitializeComponent()` designer code — skim past it to
   find the actual event handlers / business logic methods.
 
-## How to answer a question
+## Two sources — use both
+
+This skill covers two different kinds of knowledge, and they answer different questions:
+
+- **Decompiled source** (below) — what the code actually does. Use for root-cause tracing,
+  "why does this calculation come out this way," internal data flow.
+- **[AutoCount Wiki](references/autocount-wiki.md)** — what AutoCount documents and
+  already has support answers for. Use for error messages, "how do I enable/configure X,"
+  release notes, and known-issue troubleshooting — check this FIRST for anything that
+  sounds like a common, already-answered symptom (an exact error message is the strongest
+  signal). It's a live external site, not decompiled — read the reference file for how to
+  fetch it (plain WebFetch is blocked; use the browser tool) and its category structure.
+
+They complement each other well: the wiki tells you the supported fix, the source confirms
+*why* it works, and code-only tracing without checking whether it's a known issue first
+can burn a lot of turns rediscovering something already documented.
+
+## How to answer a question (decompiled source)
 
 1. **Pick the product first.** Accounting desktop app vs. POS terminal vs. backend
    Windows services are largely separate codebases with their own copy of shared logic.
