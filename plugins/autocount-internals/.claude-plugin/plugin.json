@@ -1,6 +1,6 @@
 {
   "name": "autocount-internals",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Navigate decompiled C# source and the official AutoCount Wiki (Accounting, POS, Server) to answer internal implementation and troubleshooting questions.",
   "author": {
     "name": "Daxonet"
