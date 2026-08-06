@@ -105,6 +105,18 @@ $ProductPaths | ForEach-Object { Write-Host "  $_" }
 Write-Host "Output root: $OutputRoot`n"
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
+# AutoCount ships new versions under a new install folder name (e.g. "Accounting 2.2" ->
+# "Accounting 2.3"), so an upgrade doesn't corrupt the old decompile - it just orphans it.
+# Flag those rather than silently letting them pile up across every future version bump.
+$currentNames = $ProductPaths | ForEach-Object { Split-Path $_ -Leaf }
+$orphaned = Get-ChildItem $OutputRoot -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -notin $currentNames } |
+    Select-Object -ExpandProperty Name
+if ($orphaned) {
+    Write-Host "Note: found decompiled output for products no longer detected on this machine (likely an old AutoCount version): $($orphaned -join ', ')"
+    Write-Host "      Safe to delete manually: Remove-Item -Recurse '$OutputRoot\<name>'`n"
+}
+
 $manifest = @()
 
 foreach ($productPath in $ProductPaths) {

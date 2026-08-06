@@ -1,7 +1,7 @@
 {
   "name": "autocount-internals",
-  "version": "1.0.0",
-  "description": "Navigate decompiled C# source for AutoCount ERP (Accounting, POS, Server) to answer internal implementation questions.",
+  "version": "1.1.0",
+  "description": "Navigate decompiled C# source and the official AutoCount Wiki (Accounting, POS, Server) to answer internal implementation and troubleshooting questions.",
   "author": {
     "name": "Daxonet"
   }

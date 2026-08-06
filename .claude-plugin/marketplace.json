@@ -8,8 +8,8 @@
     {
       "name": "autocount-internals",
       "source": "./plugins/autocount-internals",
-      "description": "Navigate decompiled C# source for AutoCount ERP (Accounting, POS, Server).",
-      "version": "1.0.0"
+      "description": "Navigate decompiled C# source and the official AutoCount Wiki (Accounting, POS, Server).",
+      "version": "1.1.0"
     }
   ]
 }
