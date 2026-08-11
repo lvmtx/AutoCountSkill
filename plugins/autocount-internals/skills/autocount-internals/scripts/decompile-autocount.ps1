@@ -189,5 +189,19 @@ foreach ($productPath in $ProductPaths) {
 
 $manifestPath = Join-Path $OutputRoot "manifest.json"
 $manifest | ConvertTo-Json -Depth 3 | Out-File $manifestPath -Encoding utf8
-Write-Host "`nDone. Decompiled source: $OutputRoot"
+
+# Flat file index across ALL products: "<TypeName>.cs<TAB><path relative to OutputRoot>".
+# The point isn't speed of any single grep - it's replacing "guess a module, grep it, get
+# nothing, guess another module" with one lookup against a single small file spanning
+# every product at once. ilspycmd names each file after its primary type, so a filename
+# index gets you straight to the right file for the vast majority of class/interface/enum
+# lookups without touching file contents at all.
+Write-Host "`nBuilding file index..."
+$indexPath = Join-Path $OutputRoot "file-index.txt"
+Get-ChildItem $OutputRoot -Recurse -Filter "*.cs" -ErrorAction SilentlyContinue |
+    ForEach-Object { "$($_.Name)`t$($_.FullName.Substring($OutputRoot.Length + 1))" } |
+    Sort-Object | Set-Content $indexPath -Encoding utf8
+
+Write-Host "Done. Decompiled source: $OutputRoot"
 Write-Host "Manifest: $manifestPath"
+Write-Host "File index: $indexPath"

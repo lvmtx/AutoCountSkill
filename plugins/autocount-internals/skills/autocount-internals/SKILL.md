@@ -41,6 +41,15 @@ MB total (AutoCount's own code only — third-party DLLs like DevExpress are ski
 default since decompiling those too would run into low-GB territory for no benefit). Safe
 to re-run — it skips products it's already decompiled unless you pass `-Force`.
 
+It also writes `file-index.txt` at the root — every `.cs` filename across every decompiled
+product, one per line, tab-separated from its path. **Check this file before grepping the
+tree.** ilspycmd names each file after its primary type, so for a known class/interface/enum
+name this turns "guess a module, grep it, get nothing, guess another module" (the actual
+time-sink when searching this codebase — content search itself is fast, not knowing *where*
+to point it is what's slow) into one grep against a single small file spanning every product
+at once. Falls back to the module-map + content-grep approach below when you're searching
+by keyword/concept rather than a name, or the index has no hit.
+
 **Decompiled-code caveats** — this is compiler output, not the original source, so expect:
 - No comments, no original local-variable intent beyond the name itself.
 - Compiler-generated names: `<PropName>k__BackingField` (an auto-property's backing field —
@@ -69,6 +78,12 @@ can burn a lot of turns rediscovering something already documented.
 
 ## How to answer a question (decompiled source)
 
+0. **Know a type name (or a good guess at one)? Grep `file-index.txt` first**, e.g.
+   `grep -i StockBalance file-index.txt`. If it hits, you have the exact path already —
+   skip straight to step 4. This covers most lookups: error messages usually name a class,
+   and even a rough guess (`grep -i yearend`) narrows hundreds of files to a handful
+   instantly. Move to the steps below only when you're searching by concept/keyword instead
+   of a name, or the index comes up empty.
 1. **Pick the product first.** Accounting desktop app vs. POS terminal vs. backend
    Windows services are largely separate codebases with their own copy of shared logic.
    If the question doesn't make the product obvious, infer it (e.g. "GST calculation" →
