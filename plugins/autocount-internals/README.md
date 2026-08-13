@@ -1,5 +1,9 @@
 # AutoCount Internals Plugin
 
+Install as: `lvmtx@AutoCountSkill` (plugin name `lvmtx`, from the `AutoCountSkill`
+marketplace — see the repo root for the exact `/plugin marketplace add` / `/plugin install`
+commands). "AutoCount Internals" here is a description, not the literal install name.
+
 Lets Claude navigate AutoCount ERP's decompiled source (Accounting, POS, Server) and the
 official [AutoCount Wiki](https://wiki.autocountsoft.com) to answer questions about how
 AutoCount actually works internally, trace the root cause of a bug, or find a documented
@@ -10,8 +14,8 @@ fix for an error message.
 Claude automatically uses this skill when you ask about AutoCount's internal behavior —
 a specific module (GL, ARAP, GST, EInvoice, Stock, POS payment/eWallet, the server/costing
 services), a calculation that looks wrong, or an exact error message. It knows which of
-AutoCount's ~35 own assemblies per product covers what, so it searches the right file
-directly instead of guessing across hundreds of files.
+AutoCount's own assemblies per product covers what, so it searches the right file directly
+instead of guessing across hundreds of files.
 
 ## Usage
 

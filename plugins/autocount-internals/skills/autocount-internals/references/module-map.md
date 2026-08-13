@@ -64,7 +64,7 @@ unless you're specifically chasing vendor-library behavior.
 |---|---|
 | `AutoCount` | Shared core library (data access, business objects, framework) — same lib used by AutoCount Server |
 | `AutoCount.Accounting` | Main accounting business logic |
-| `AutoCount.Accounting.UI` | WinForms UI for the accounting module |
+| `AutoCount.Accounting.UI` | WinForms UI for the accounting module — **also where a lot of cross-cutting report/inquiry logic actually lives**, not just UI: GL Ledger (`AutoCount.GL.Ledger`), Stock Balance and Stock Card (`AutoCount.Stock.StockBalance`/`StockCard`) are all here, not in `AutoCount.GL` or `AutoCount.Stock` despite the namespace names. If a report class isn't where its namespace suggests, check here before widening the search. |
 | `AutoCount.ARAP` | Accounts Receivable / Accounts Payable |
 | `AutoCount.BI` | Business intelligence / dashboards |
 | `AutoCount.BusinessFlow` | Workflow / approval flow engine |
