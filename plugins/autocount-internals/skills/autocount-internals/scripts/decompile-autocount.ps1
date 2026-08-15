@@ -209,6 +209,18 @@ Get-ChildItem $OutputRoot -Recurse -Filter "*.cs" -ErrorAction SilentlyContinue 
     ForEach-Object { "$($_.Name)`t$($_.FullName.Substring($OutputRoot.Length + 1))" } |
     Sort-Object | Set-Content $indexPath -Encoding utf8
 
+# Distinct AutoCount.* assembly/namespace folder names found anywhere in the output -
+# not a diff against module-map.md (parsing that markdown table from PowerShell would be
+# fragile), just a flat list. If AutoCount ships a new module in a future version, its
+# folder name will show up here; grepping it against module-map.md's own content is a
+# reliable enough check for whether the map needs updating, without this script trying to
+# parse another file's format.
+$modulesPath = Join-Path $OutputRoot "modules-found.txt"
+Get-ChildItem $OutputRoot -Recurse -Directory -Filter "AutoCount.*" -ErrorAction SilentlyContinue |
+    Select-Object -ExpandProperty Name -Unique |
+    Sort-Object | Set-Content $modulesPath -Encoding utf8
+
 Write-Host "Done. Decompiled source: $OutputRoot"
 Write-Host "Manifest: $manifestPath"
 Write-Host "File index: $indexPath"
+Write-Host "Modules found: $modulesPath (compare against module-map.md - anything missing there is undocumented)"

@@ -40,17 +40,34 @@ skill's decompiled tree:
   pastes an exact AutoCount error message, check here first** — many are covered verbatim.
 
 ### Category:Users:Accounting — desktop Accounting app (matches `Accounting_2.2.29.41/`)
-Organized by version. For the version in this skill's decompiled tree, the relevant pages
-are under "AutoCount Accounting 2.0 & 2.1 & 2.2": *What's New*, *Help File* (the full user
+Organized by version. Full page list under "AutoCount Accounting 2.0 & 2.1 & 2.2" (the
+version matching this skill's decompiled tree): *What's New*, *Help File* (the full user
 manual), *FAQ (Application)*, *FAQ (Troubleshoot)*, *Others*, and per-version *Release
-Note* pages (2.0/2.1/2.2). Older 1.8/1.9 pages exist too but won't match this codebase.
+Note* pages (2.0/2.1/2.2). A separate "AutoCount Accounting 1.8 / 1.9 / 2.0" section has
+its own FAQ/Release Note pages — those are for the *older* codebase, skip them. There's
+also a specific "AutoCount Payroll" and "AutoCount POS" cross-link visible from this
+category page but those live under their own categories below.
 
 ### Category:Users:POS — POS/FnB (matches `POS 5.2/`)
-Organized by product line (Pos/FnB/OneSales/Optical/QR Ordering/PalmPos), each with its own
-FAQ (Application) and FAQ (Troubleshoot) pages, plus Release Notes per version. Also has:
-*AutoCount POS API*, *AutoCount Pos Payment Gateway*, *AutoCount Pos Hardware Compatibility
-Lists*, *AutoCount Pos Mall Integration Lists*, and *POS 5.2 Application Script Template* —
-all worth checking before treating something as undocumented custom behavior.
+Full page list, organized by product line: *AutoCount Pos 5.0/5.1 & FnB 5.0/5.1 FAQ*
+(shared + per-product Application/Troubleshoot pairs for Pos 5.0, FnB 5.0, OneSales Pos,
+Optical Pos 2.1, QR Ordering, PalmPos), *AutoCount POS 3.1* (own FAQ pair — older, likely
+doesn't match this tree), Release Notes per version/product (Pos 3.1/5.0/5.1/5.2, FnB
+5.0/5.1/5.2, FnB eWaiter, FnB QR Ordering, Optical Pos 2.1/2.2), and under "Others": *AutoCount
+FnB Help File*, *AutoCount Pos 5.0 Help File*, *AutoCount Pos Mall Integration Lists*,
+*AutoCount Pos Payment Gateway*, *AutoCount Pos Hardware Compatibility Lists*. Also:
+*AutoCount POS API*, *POS 5.2 Application Script Template* — check these before treating
+something as undocumented custom behavior.
+
+### Specific pages confirmed useful during real investigations (go straight there, skip search)
+- `Request_Quotation` — full field-by-field Request Quotation entry guide.
+- `Restore` — backup-file restore procedure (what "restore a backup" actually involves:
+  creates a new standalone account book, doesn't merge into the live one).
+- `Stock_Assembly_%26_Disassembly` — Stock Assembly Order, Stock Assembly, BOM Optional,
+  Dismantled Qty, Stock Disassembly, BOM Listing Report, BOM Material Usage Inquiry — the
+  full assemble/disassemble feature set in one page.
+- `Accounting_2.0_-_How_to_do_Year_end_Closing_in_Version_2.0_or_above` — the official
+  Year End Closing procedure, including the "backup first" step and what survives after.
 
 ### AutoCount Accounting Plug-In — directory of existing plugins
 `https://wiki.autocountsoft.com/wiki/AutoCount_Accounting_Plug-In` lists AutoCount's own

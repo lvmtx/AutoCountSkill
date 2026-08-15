@@ -41,14 +41,19 @@ MB total (AutoCount's own code only — third-party DLLs like DevExpress are ski
 default since decompiling those too would run into low-GB territory for no benefit). Safe
 to re-run — it skips products it's already decompiled unless you pass `-Force`.
 
-It also writes `file-index.txt` at the root — every `.cs` filename across every decompiled
-product, one per line, tab-separated from its path. **Check this file before grepping the
-tree.** ilspycmd names each file after its primary type, so for a known class/interface/enum
-name this turns "guess a module, grep it, get nothing, guess another module" (the actual
-time-sink when searching this codebase — content search itself is fast, not knowing *where*
-to point it is what's slow) into one grep against a single small file spanning every product
-at once. Falls back to the module-map + content-grep approach below when you're searching
-by keyword/concept rather than a name, or the index has no hit.
+It also writes two files at the root:
+- `file-index.txt` — every `.cs` filename across every decompiled product, one per line,
+  tab-separated from its path. **Check this file before grepping the tree.** ilspycmd names
+  each file after its primary type, so for a known class/interface/enum name this turns
+  "guess a module, grep it, get nothing, guess another module" (the actual time-sink when
+  searching this codebase — content search itself is fast, not knowing *where* to point it
+  is what's slow) into one grep against a single small file spanning every product at once.
+  Falls back to the module-map + content-grep approach below when you're searching by
+  keyword/concept rather than a name, or the index has no hit.
+- `modules-found.txt` — every distinct `AutoCount.*` folder name found in the output. If
+  AutoCount ships a new version with a module not in [module-map.md](references/module-map.md),
+  it'll show up here first — worth a quick diff-by-eye after re-running on a newer install,
+  since the map is a hand-maintained snapshot that can't update itself.
 
 **Decompiled-code caveats** — this is compiler output, not the original source, so expect:
 - No comments, no original local-variable intent beyond the name itself.
@@ -78,32 +83,46 @@ can burn a lot of turns rediscovering something already documented.
 
 ## How to answer a question (decompiled source)
 
-0. **Know a type name (or a good guess at one)? Grep `file-index.txt` first**, e.g.
+1. **Check [references/known-findings.md](references/known-findings.md) first.** It's a
+   running log of mechanisms already traced to source in past investigations (report
+   formula quirks, exact throw sites for specific error messages, what a process does and
+   doesn't touch). If the question matches something already confirmed there, you're done —
+   don't re-derive it. If it's a new finding worth keeping, add it there once confirmed.
+2. **Know a type name (or a good guess at one)? Grep `file-index.txt` next**, e.g.
    `grep -i StockBalance file-index.txt`. If it hits, you have the exact path already —
-   skip straight to step 4. This covers most lookups: error messages usually name a class,
+   skip straight to step 6. This covers most lookups: error messages usually name a class,
    and even a rough guess (`grep -i yearend`) narrows hundreds of files to a handful
    instantly. Move to the steps below only when you're searching by concept/keyword instead
    of a name, or the index comes up empty.
-1. **Pick the product first.** Accounting desktop app vs. POS terminal vs. backend
+3. **Pick the product.** Accounting desktop app vs. POS terminal vs. backend
    Windows services are largely separate codebases with their own copy of shared logic.
    If the question doesn't make the product obvious, infer it (e.g. "GST calculation" →
    Accounting; "cash drawer" / "eWallet" / "close counter" → POS; "costing service" /
    "server monitor" → AutoCount Server) or ask.
-2. **Pick the module** using the table in [references/module-map.md](references/module-map.md) —
-   it lists every top-level AutoCount.* project per product with what it covers. Don't skip
-   this: with 163 project folders in Accounting alone, guessing by grep-everything wastes a
-   lot of turns that a 30-second table lookup avoids.
-3. **Search narrow, then widen.** Grep for the class/method/keyword inside the chosen
+4. **Pick the module** using the table in [references/module-map.md](references/module-map.md) —
+   it lists every top-level AutoCount.* project per product with what it covers, **including
+   a "known gotcha" table of code that lives somewhere other than its namespace suggests**
+   (e.g. GL Ledger and Stock Balance/Card actually live in `AutoCount.Accounting.UI`, not
+   `AutoCount.GL`/`AutoCount.Stock`) — check that table before assuming file-index came up
+   empty because the feature doesn't exist. Don't skip this step: with 163 project folders
+   in Accounting alone, guessing by grep-everything wastes a lot of turns a 30-second table
+   lookup avoids.
+5. **Decode what you find using the glossaries**: [references/doctype-glossary.md](references/doctype-glossary.md)
+   for the 2-3 letter `DocType` codes that saturate every SQL string (`IV`, `RQ`, `SA`, `PI`...),
+   and [references/table-glossary.md](references/table-glossary.md) for what the recurring
+   table names (`StockDTL`, `GLDTL`, `ItemPrice`, `IPHIST`...) actually hold. Both are
+   confirmed-from-source, not guessed — extend them when a new one gets confirmed.
+6. **Search narrow, then widen.** Grep for the class/method/keyword inside the chosen
    module folder first. Only broaden to the whole product, then to another product, if the
    narrow search comes up empty — a term like "Invoice" or "Tax" will otherwise return
    hundreds of hits across unrelated modules.
-4. **Read only the matched files**, not whole folders. These projects are large; pulling a
+7. **Read only the matched files**, not whole folders. These projects are large; pulling a
    whole module into context defeats the point of searching first.
-5. **Skip vendor code.** Folders like `DevExpress.*`, `CefSharp*`, `Grpc.*`,
+8. **Skip vendor code.** Folders like `DevExpress.*`, `CefSharp*`, `Grpc.*`,
    `Microsoft.*`, `System.*`, `Google.*`, `MailKit`, `BouncyCastle.Crypto` are third-party
    dependencies bundled alongside AutoCount's own code, not AutoCount's implementation —
    only search into them if you're specifically chasing a vendor API's behavior.
-6. **POS and Server namespaces are folders, not separate assemblies** — e.g. (paths
+9. **POS and Server namespaces are folders, not separate assemblies** — e.g. (paths
    relative to `%LOCALAPPDATA%\AutoCountInternals\decompiled\`)
    `POS 5.2\AutoCount.POS.FrontEnd\AutoCount\POS\EInvoice\` or
    `AutoCount Server\AutoCountServerMonitor\AutoCountServer\` — Grep/Glob those subtrees

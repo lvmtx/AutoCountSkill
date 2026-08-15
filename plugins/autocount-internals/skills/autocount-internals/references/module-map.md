@@ -60,6 +60,27 @@ history/version of a specific column or table by number.
 `PhoneNumbers`, `WindowsInput`, `zxing`, `Daxonet.*`) is a third-party dependency — skip
 unless you're specifically chasing vendor-library behavior.
 
+### Known gotcha: code that lives somewhere other than its namespace suggests
+
+`AutoCount.Accounting.UI` isn't just accounting UI — it's where a lot of OTHER modules'
+actual report/business logic lives too, confirmed by scanning every subfolder inside it
+and cross-referencing against top-level assembly names:
+
+| Namespace inside `AutoCount.Accounting.UI` | You'd expect it in... | Files |
+|---|---|---|
+| `AutoCount.Stock.StockBalance`, `StockCard`, `StockLevel`, `StockStatus`, `Item` | `AutoCount.Stock` | 46 |
+| `AutoCount.GL.Ledger`, `CashBook`, `JournalEntry`, `AccountBalanceInquiry`, `BankBook2`, `BankBookAnalysis2` | `AutoCount.GL` | 29 |
+| `AutoCount.Invoicing.PriceHistory` | `AutoCount.Invoicing` | 21 |
+| `AutoCount.Inquiry.UserControls` | `AutoCount.Inquiry` | 14 |
+| `AutoCount.ARAP.CreditorAging`, `CreditorBalance`, `DebtorAging`, `DebtorBalance` | `AutoCount.ARAP` | 8 |
+
+**Practical rule: if `file-index.txt` shows a class living under `AutoCount.Accounting.UI`
+when you expected `AutoCount.GL`/`AutoCount.Stock`/`AutoCount.ARAP`/`AutoCount.Invoicing`/
+`AutoCount.Inquiry`, that's not a mistake in the index — that's just where AutoCount
+actually compiled it.** This was found by scanning every subfolder in `AutoCount.Accounting.UI`
+against the list of top-level assembly names — if a similar mismatch shows up in a
+different module while investigating something, add it to this table.
+
 | Folder | Covers |
 |---|---|
 | `AutoCount` | Shared core library (data access, business objects, framework) — same lib used by AutoCount Server |
