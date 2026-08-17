@@ -5,7 +5,7 @@
 .DESCRIPTION
   Run this once per machine, against your own locally-installed, licensed copy of AutoCount.
   It never copies decompiled code between machines - every user regenerates their own copy
-  from their own install. That's the point: the autocount-internals skill needs a decompiled
+  from their own install. That's the point: the lvmtx skill needs a decompiled
   tree to search, but nobody should be handed AutoCount's reverse-engineered source without
   having their own install to back it.
 

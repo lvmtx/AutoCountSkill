@@ -35,7 +35,7 @@ powershell -ExecutionPolicy Bypass -File "scripts\decompile-autocount.ps1"
 ```
 
 Run from the skill's own directory. Takes a few minutes, a few hundred MB, safe to re-run.
-See `skills/autocount-internals/SKILL.md` for details.
+See `skills/lvmtx/SKILL.md` for details.
 
 ## Authors
 

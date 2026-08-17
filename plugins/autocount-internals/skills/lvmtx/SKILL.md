@@ -1,5 +1,5 @@
 ---
-name: autocount-internals
+name: lvmtx
 description: Navigate decompiled C# source for AutoCount ERP (Accounting, POS, Server/services) AND the official AutoCount Wiki (wiki.autocountsoft.com) to answer "how does AutoCount do X", "where is Y implemented", "trace the flow of Z" questions, explain an AutoCount error message, or find documented troubleshooting/config steps. Use this whenever the user asks about AutoCount's internal behavior, business logic, data flow, a specific AutoCount module (GL, ARAP, GST, EInvoice, Stock, POS payment/promotion/eWallet, the AutoCountServerService/CostingService Windows services, etc.), or wants to find where some AutoCount feature, bug, or calculation lives in code — even if they don't say "decompiled" or "source code" explicitly, and even if they just paste an AutoCount error message, class name, or SQL migration filename and ask what it means.
 ---
 
