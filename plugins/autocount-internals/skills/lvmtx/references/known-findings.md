@@ -82,3 +82,96 @@ is the document-*approval-workflow* expiry (a draft auto-expiring if not approve
 `RQ` and `RQDTL` support User Defined Fields (`LayoutControlUDFUtil.SetupLayoutItems`),
 so a custom "Quote Valid Until" date UDF is the standard way to add this without any
 custom development.
+
+## Azure SQL Database and Managed Instance are not supported hosting targets for AutoCount
+
+`DBSql.cs` (`AutoCount.Data.Sql`) has a dedicated branch for hostnames ending in
+`.database.windows.net`, building a proper Azure-style connection string
+(`server=tcp:...;encrypt=true`) — so basic connectivity genuinely works, and login
+against an already-populated Azure SQL Database/Managed Instance can succeed. But
+several *other* code paths assume a real, file-system-backed SQL Server instance and
+break on true PaaS:
+
+- **No restore.** The Restore Wizard (`BackupRestoreHelper.cs`) issues raw
+  `RESTORE DATABASE ... FROM DISK`, which Azure SQL Database's engine rejects outright
+  (`Msg 40510`, "not supported in this version of SQL Server"). Managed Instance
+  supports `RESTORE DATABASE ... FROM URL` (blob storage) instead, but not `FROM DISK`.
+- **`CREATE DATABASE` only works with no explicit file path.** `DBUtilsSQL.cs`'s
+  `CreateDatabase()` adds `FILENAME=...`/`FILEGROWTH=...` clauses whenever a
+  `dbFileName` is supplied — invalid on Azure SQL Database, which has no addressable
+  file system. A "Create New Account Book" with no file path specified takes the plain
+  `CREATE DATABASE [name] COLLATE ...` branch instead, which *is* Azure-compatible.
+- **`AutoCount Database Setup` needs `master` access** to create/attach/detach/drop
+  company databases — Azure SQL Database is scoped to one database and never grants
+  this (confirmed independently in Daxonet's own AutoCount-on-Azure proposal doc, not
+  just from source).
+- **Multi-company relies on cross-database queries** — unsupported on Azure SQL
+  Database.
+- Several maintenance/upgrade routines assume a sysadmin-equivalent login, which the
+  PaaS tier never exposes.
+
+The supported path (also Daxonet's own recommended architecture) is AutoCount + a real
+SQL Server instance (Express/Standard) co-located on the same VM/machine — never split
+across a network, and never against Azure SQL Database/Managed Instance directly.
+
+## The Attach Account Book "Get Available Databases" button always tries login `sa`
+
+`FormAttachAccountBook.sbtnGetDatabases_Click` calls
+`new FormAvailableSQLDatabase(serverName, saPassword)` — only two arguments.
+`FormAvailableSQLDatabase`'s constructor signature is
+`(string serverName, string saPassword, string userID = "sa")`, so the third parameter
+silently defaults to `"sa"` regardless of whatever custom username was typed into the
+form's own User Name field. Works fine against a real SQL Server where `sa` is the
+actual login; fails with "incorrect login" against anything using a different admin
+account (e.g. Azure SQL Database's `dbadmin`) even when the credentials you typed are
+correct. Workaround: skip that browse button, type the database name directly.
+
+## `dbo.REGISTRY` (RegID 24) gates a post-login AutoCount Server sync call
+
+`ApplicationVersion` (`AutoCount.RegistryID`) is `RegID = 24`, read/written via
+`DBRegistrySQL.GetValue`/`SetValue` against `SELECT/UPDATE ... FROM REGISTRY WHERE
+RegID=...`. `FormLoginAccountBook.CheckApplicationVersion()` compares this stored value
+against the client's own hardcoded version string; if the stored value is *newer*, it
+calls `CommonServiceHelper.CheckServerConnection()` (a gRPC call to AutoCount Server,
+port 19500 by default, `DEADLINE_SECONDS = 30` hardcoded, not configurable). A
+migrated/restored account book carries whatever `ApplicationVersion` the *original*
+environment had, which can trigger this unconditionally on first login elsewhere.
+Separately, `MainFormJobsHelper.CheckAutoCountServerVersion()` makes an *unconditional*
+version of the same call on every login regardless of the REGISTRY value — this is the
+more likely source of a `DeadlineExceeded` popup that appears right after every login,
+not just once.
+
+**Investigated but not conclusively resolved**: chasing a `DeadlineExceeded` from this
+call against Azure SQL Database, we found `AccountBookHelper.TestDBConnection`
+(AutoCount Server side, `AutoCount.Shared.Helper`) calls
+`SERVERPROPERTY('productlevel')` and `.ToString()`s the result with no null check,
+inside a bare `catch { result = false; }` that logs nothing — a real bug if that
+property is ever `NULL`. It was *not* the actual cause in the case we traced (a live
+`SELECT SERVERPROPERTY('productlevel')` against the specific Azure SQL Database in
+question returned `"RTM"`, not `NULL`), so don't assume this is the explanation without
+checking that property directly against the database in question first. The genuine
+root cause of that specific timeout was never pinned down (live SQL session monitoring
+showed the connection succeed and sit idle, ruling out a slow/blocked query) — but the
+practical finding was that the error is dismissible and doesn't block actual use; login
+and core database functionality work fine even when this popup fires.
+
+## POS Full Sync vs Speed Sync — different scope, not different data
+
+Per AutoCount's own wiki ("Speed Sync vs Full Sync?"): Speed Sync only pushes records
+changed since the last sync (tracked via a `ChangeLog` table) and is what runs on the
+regular auto-sync timer (default 15 min, adjustable down to 5). Full Sync
+unconditionally overwrites all master data in both directions regardless of whether
+anything changed, and explicitly does *not* consult ChangeLog — the wiki warns against
+running it right after item codes were changed/merged elsewhere, since it can clobber
+that in-progress state. Transactions sync back to backend via *both* mechanisms, not
+exclusively via Full Sync — that's why transactions can still show up between
+scheduled Full Sync runs.
+
+## POS A/B vs POS Branch are not interchangeable licensing options
+
+POS A/POS B is for multiple checkout counters *within one physical outlet*, syncing
+directly over the local network — explicitly restricted to `192.168.x.x`/`10.x.x.x`
+address ranges (same WiFi/router/building) per AutoCount's own documentation. POS
+Branch is for genuinely separate outlets, each syncing back to central backend over the
+internet via Remote HQ. POS A/B cannot substitute for Branch licensing across physically
+separate locations — it hard-requires shared LAN.
