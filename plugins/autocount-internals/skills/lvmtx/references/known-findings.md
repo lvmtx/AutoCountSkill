@@ -167,11 +167,42 @@ that in-progress state. Transactions sync back to backend via *both* mechanisms,
 exclusively via Full Sync — that's why transactions can still show up between
 scheduled Full Sync runs.
 
-## POS A/B vs POS Branch are not interchangeable licensing options
+## POS A/B has two sync transports — LocalNetwork isn't the only option
 
-POS A/POS B is for multiple checkout counters *within one physical outlet*, syncing
-directly over the local network — explicitly restricted to `192.168.x.x`/`10.x.x.x`
-address ranges (same WiFi/router/building) per AutoCount's own documentation. POS
-Branch is for genuinely separate outlets, each syncing back to central backend over the
-internet via Remote HQ. POS A/B cannot substitute for Branch licensing across physically
-separate locations — it hard-requires shared LAN.
+`HttpClientSyncObject` (`AutoCount.POS.ClientSync`) picks its sync URL based on
+`TerminalProfile.SyncType`, an enum with exactly two values:
+`TerminalSyncType.LocalNetwork` (`http://{SyncIPAddress}:{SyncPort}` — a plain HTTP call,
+not a broadcast/discovery protocol, so it's not inherently LAN-only; a routed VPN
+connecting two private address spaces would satisfy it) and `TerminalSyncType.ServiceBus`
+(`https://{ServiceBusNameSpace}.servicebus.windows.net` — Azure Service Bus Relay,
+purpose-built by AutoCount for connecting POS B to POS A over the internet without VPN
+or port-forwarding at all). Both are configured in the real Terminal Wizard
+(`FormTerminalWizard.cs` — two actual checkboxes, "Controlled By Local Network" vs
+"Controlled By Service Bus"). So POS A/B *can* span physically separate outlets, either
+via VPN (LocalNetwork mode) or natively via ServiceBus mode — it doesn't hard-require
+same-LAN the way the "192.168.x.x/10.x.x.x same building" wiki wording first suggests.
+Caveat: this is a frequent near-real-time HTTP sync, not a periodic batch — expect real
+WAN latency per call over either transport, worth piloting on one remote store first.
+
+POS Branch remains the other option (each outlet has its own local database, syncing
+back to central backend periodically via Remote HQ) — the real distinction between it
+and POS A/B-over-WAN is periodic-separate-databases vs. one continuously-shared database,
+not "can only be same LAN" vs. "can span locations."
+
+## "Select Type Of Stock In Transaction" (Return vs Trade In) is a standard POS feature, gated by an Option Setting
+
+Entering a negative quantity in POS Sales (`FormSales.cs`) checks
+`PosSystem.OptionSetting.TradeIn` (a real property on `AutoCount.POS.OptionSetting`,
+toggled via POS Backend → Point of Sale → Maintenance → POS Option Maintenance → "Trade
+In"). Off: the line silently defaults to `TypeOfStockIn = "R"` (Return), no dialog at
+all. On: shows `FormSelectTypeOfStockIn` (a real native form, not a plugin) letting the
+cashier choose Return vs Trade In. There's also a matching Front End Access Right
+constant (`FrontEndAccessRightConst.TradeIn`) gating who can use it. Trade-in items get
+distinct handling downstream: a manual cost entry via `FormEnterCost` (a traded-in item
+has no normal selling price), and they're explicitly blocked from E-Invoice submission
+with their own confirmation warning (`TradeInItemCannotBeRecordedAsEInvoice`).
+**Lesson learned the hard way**: don't conclude "not standard, must be a plugin" from a
+grep that only checked the localized UI caption text — that's pulled from a resource at
+runtime and won't match a plain string search. Search for the likely class/property name
+(`FormSelectTypeOfStockIn`, `OptionSetting.TradeIn`) before concluding a feature doesn't
+exist in source.
