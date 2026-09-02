@@ -9,7 +9,7 @@
       "name": "lvmtx",
       "source": "./plugins/autocount-internals",
       "description": "Navigate decompiled C# source and the official AutoCount Wiki (Accounting, POS, Server).",
-      "version": "1.6.2",
+      "version": "1.6.3",
       "category": "development"
     }
   ]

@@ -201,6 +201,21 @@ The code-level finding above (ServiceBus is a real WAN-capable transport) is acc
 but it's the mechanism behind Branch Sync specifically, which requires Module Branch or
 Module A+add-on licensing — not something to assume works on a bare Module B install.
 
+**Architecture correction, also important**: even with correct licensing, Branch Sync is
+NOT one live shared database that every branch queries directly. Per AutoCount's own
+product description, "the POS 5 installer separates the backend database on the server
+from the frontend databases on cashier terminals to support offline operations," and
+Branch Sync "keeps sales transactions, stock movements, and customer records synced
+between branches and HQ in real time or scheduled intervals." Each location — HQ and
+every branch — keeps its own local database; Branch Sync copies data between them rather
+than one DB being queried live by all sites. This is deliberate, so each branch keeps
+operating if its internet connection drops. Practical consequence: "can a customer
+return an item at a different branch than they bought it" is true only *after* that
+sale has synced across — not instantly by architecture alone. If cross-branch returns
+need to feel reliably immediate, confirm Branch Sync is configured for real-time sync,
+not a longer scheduled interval, and expect a real (if usually short) window right after
+a sale where it hasn't reached other branches yet.
+
 ## "Select Type Of Stock In Transaction" (Return vs Trade In) is a standard POS feature, gated by an Option Setting
 
 Entering a negative quantity in POS Sales (`FormSales.cs`) checks
