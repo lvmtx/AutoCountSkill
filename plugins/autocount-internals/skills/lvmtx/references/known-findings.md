@@ -189,6 +189,18 @@ back to central backend periodically via Remote HQ) — the real distinction bet
 and POS A/B-over-WAN is periodic-separate-databases vs. one continuously-shared database,
 not "can only be same LAN" vs. "can span locations."
 
+**Licensing correction, important**: the `ServiceBus` transport existing in
+`HttpClientSyncObject` does NOT mean any POS install can use it. AutoCount's actual
+commercial product line has three distinct POS Frontend modules — **Module Branch**
+(Branch Sync included), **Module A** (Branch Sync available as a paid add-on), and
+**Module B** (Branch Sync **not available at all, not even as an add-on** — confirmed
+via an official AutoCount reseller's product page, not just source). So a "HQ = POS A,
+every store = POS B" topology can never get proper branch/multi-location sync no matter
+how it's networked (VPN or ServiceBus) — Module B is licensed/gated to not support it.
+The code-level finding above (ServiceBus is a real WAN-capable transport) is accurate,
+but it's the mechanism behind Branch Sync specifically, which requires Module Branch or
+Module A+add-on licensing — not something to assume works on a bare Module B install.
+
 ## "Select Type Of Stock In Transaction" (Return vs Trade In) is a standard POS feature, gated by an Option Setting
 
 Entering a negative quantity in POS Sales (`FormSales.cs`) checks
