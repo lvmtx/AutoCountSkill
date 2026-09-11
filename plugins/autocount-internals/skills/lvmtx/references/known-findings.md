@@ -233,3 +233,31 @@ grep that only checked the localized UI caption text — that's pulled from a re
 runtime and won't match a plain string search. Search for the likely class/property name
 (`FormSelectTypeOfStockIn`, `OptionSetting.TradeIn`) before concluding a feature doesn't
 exist in source.
+
+## `ARPaymentEntity.KnockOff()`'s date parameter defaults to null — but it doesn't stay null
+
+`ARPaymentEntity.KnockOff(docType, docNo, amount)` (3-arg overload) calls the 4-arg
+version with `knockOffDate: null`, which sets `ARPaymentKnockOff.GainLossDate` to
+`DBNull.Value` on the in-memory row. **This is not the end of the story** — it looks
+like a "date is simply never captured" bug if you stop tracing here, but
+`SaveARPayment()` (`ARPaymentDataAccess.cs`, `SetGainLossDate()`) runs on every save,
+for every caller (desktop UI or a custom plugin calling `KnockOff()` directly), and
+back-fills any still-null `GainLossDate` with the **later of** the ARPayment's own
+`DocDate` or the knocked-off Invoice/DN's `DocDate` (floor-clamped to the fiscal year's
+`ActualDataStartPeriod` if that would otherwise land inside a locked period). The
+desktop UI's own default (`FormARCNEdit.SetDefaultKnockOffDate()` — same "later of the
+two dates" logic, or `DateTime.Today` if the `myUseTodayDate` option is on) just applies
+this earlier, at grid-row-select time; the save-time fallback is what actually guarantees
+a date exists regardless of caller. A custom API/plugin calling the 3-arg `KnockOff()`
+does **not** need to pass a date to get a sensible one — it happens automatically at
+save.
+
+**Lesson learned the hard way**: traced `KnockOff()` alone, saw it pass `null`, and
+confidently told the user "it stays null, add a date field to your API" — wrong, because
+the actual value only exists after the full save path runs, not at the point the
+document object is mutated in memory. **Before asserting what a value ends up as, trace
+all the way through the corresponding `Save*()`/data-access method, not just the
+in-memory entity method that looked like the answer.** A field being null right after
+one call doesn't mean it's null in the database — plenty of AutoCount save paths apply
+defaults/fallbacks at persist time that never show up if you stop reading at the object
+model.
