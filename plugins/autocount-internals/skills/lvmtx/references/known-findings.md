@@ -261,3 +261,30 @@ in-memory entity method that looked like the answer.** A field being null right 
 one call doesn't mean it's null in the database — plenty of AutoCount save paths apply
 defaults/fallbacks at persist time that never show up if you stop reading at the object
 model.
+
+## "Your license sync type is LocalSync, so you must enter IP address 127.0.0.1..." — exact trigger condition
+
+`HttpClientSyncObject` (`AutoCount.POS.ClientSync`) constructor computes a `myIsBranchSync`
+flag purely from the configured `TerminalProfile.SyncIPAddress` string: if it starts with
+`192.168.`, `127.0.0.1`, `172.16.`, or `10.`, `myIsBranchSync = false`; **any other IP**
+(a public IP, or a private range outside those four prefixes, e.g. `172.17.x`–`172.31.x`
+which is also RFC1918 private but not covered by this check) sets `myIsBranchSync = true`.
+Later, `CheckSyncLicenseAndGetParentProductID()` throws
+`ClientSyncStringId.SyncTypeIsLocalSync` (the exact message quoted above) when
+`myIsBranchSync && !myPosLicense.BranchSync` — i.e. the terminal's Sync IP Address falls
+outside those four prefixes **and** the license's `BranchSync` entitlement is off (plain
+Module A/B, no Branch add-on — see the Licensing correction above).
+
+Two independent fixes, pick based on actual topology:
+1. **Same LAN or routed VPN**: the client PC connecting to POS must reach the backend at
+   a Sync IP Address inside one of the four checked prefixes. If VPN-routed, use the
+   VPN-assigned address in that range, not a public one — this is a config fix, not a
+   licensing issue, and is the fix when nothing has actually changed except which PC is
+   connecting.
+2. **Genuinely different network/public IP**: this is real Branch Sync territory by the
+   code's own definition — requires Module Branch or Module A + Branch Sync add-on;
+   plain Module B can never clear this check regardless of IP.
+
+Note the resx string text itself is stale — it lists only `127.0.0.1`/`192.168.`/`10.`,
+omitting `172.16.`, even though the code checks all four. Don't rely on the displayed
+message alone to enumerate the accepted ranges; the source is a further prefix.
