@@ -1,6 +1,6 @@
 {
   "name": "lvmtx",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "description": "Navigate decompiled C# source and the official AutoCount Wiki (Accounting, POS, Server) to answer internal implementation and troubleshooting questions.",
   "author": {
     "name": "Daxonet"

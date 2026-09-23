@@ -288,3 +288,24 @@ Two independent fixes, pick based on actual topology:
 Note the resx string text itself is stale — it lists only `127.0.0.1`/`192.168.`/`10.`,
 omitting `172.16.`, even though the code checks all four. Don't rely on the displayed
 message alone to enumerate the accepted ranges; the source is a further prefix.
+
+## Without a registered license, AutoCount Server defaults to 3 concurrent network users per type
+
+`RemoteLicenseService.SessionLogin()` (`AutoCount Server\AutoCountServerService`,
+`AutoCount.Service`) is the actual concurrency gatekeeper — every Accounting client login
+calls this on the AutoCount Server service, which tracks active sessions in an in-memory
+`Session` DataSet (Master/Detail tables) keyed by ProductID/ComputerName/UserName/SessionId.
+Before checking the real license, it seeds three local defaults:
+`int num5 = 3` (FullSystemNetworkUsers), `int num6 = 3` (AccountOnlyNetworkUsers),
+`int num7 = 3` (StockOnlyNetworkUsers). It then tries to find a `LicenseEntity` whose
+`ProductID` matches the connecting account book/product and read its real
+`AccountingLicense.FullSystemNetworkUsers`/`AccountOnlyNetworkUsers`/`StockOnlyNetworkUsers` —
+**only if that lookup succeeds do the real licensed numbers overwrite the defaults**. If the
+account book was never registered into the license (no matching `LicenseEntity`, or its
+`AccountingLicense` is null), the check silently runs against the hardcoded `3`/`3`/`3` and
+throws `NetworkControllerUtilsStringId.NetworkUsersAlreadyLogined` (or the Account-only/
+Stock-only variants) once total active sessions for that product exceed 3 of that type.
+**Answer to "how many concurrent users without a license": 3** (per network-user type, not
+a single shared pool) — this is a fallback/trial allowance baked into the server service
+itself, not a documented product tier, so don't quote it to a client as an intentional trial
+feature — verify against the actual behavior if AutoCount changes this in a future release.
