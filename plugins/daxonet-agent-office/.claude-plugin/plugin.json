@@ -1,8 +1,0 @@
-{
-  "name": "daxonet-agent-office",
-  "version": "1.0.0",
-  "description": "The DAXONET cyberpunk office: watch Claude Code sessions and subagents as characters, run an AI town, or let a virtual company build small projects.",
-  "author": {
-    "name": "Daxonet"
-  }
-}
