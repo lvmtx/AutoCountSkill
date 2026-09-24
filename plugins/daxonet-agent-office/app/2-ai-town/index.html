@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daxonet Town</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap">
+<link rel="stylesheet" href="/shared/office.css">
+<style>
+  .mind{font-size:11px; line-height:1.6; color:var(--text-dim); margin-top:8px; overflow-wrap:anywhere;}
+  .mind .lbl{color:var(--amber); font-size:10px; letter-spacing:.08em;}
+  .mind ul{margin:2px 0 6px; padding-left:14px;}
+  .mind i{color:var(--text-bright);}
+  .warnbox{font-size:11px; color:var(--red); margin-top:8px; line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="titlebar">
+  <h1>DAXONET TOWN</h1>
+  <span class="sub">// every character thinks with Claude</span>
+  <span class="conn" id="conn">CONNECTING…</span>
+</div>
+
+<div class="app">
+  <div class="floor-wrap">
+    <canvas id="floor"></canvas>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <div class="hud">
+    <div class="hud-section">
+      <p class="hud-title">SIMULATION</p>
+      <div class="stat-row"><span>Status</span><b id="stStatus">paused</b></div>
+      <div class="stat-row"><span>Sim time</span><b id="stClock">08:00</b></div>
+      <div class="stat-row"><span>Model</span><b id="stModel">-</b></div>
+      <div class="stat-row"><span>Claude calls</span><b id="stCalls">0</b></div>
+      <div class="stat-row"><span>Tokens in / out</span><b id="stTokens">0 / 0</b></div>
+      <div class="stat-row"><span>Est. spend</span><b id="stCost">-</b></div>
+      <div class="cmd-row"><button class="btn" id="runBtn" type="button">START</button></div>
+      <div class="hint" id="budgetHint"></div>
+      <div class="warnbox" id="authBox" hidden></div>
+    </div>
+
+    <div class="hud-section">
+      <p class="hud-title">SELECTED</p>
+      <div id="detail" class="selected-info"></div>
+      <div id="mind" class="mind"></div>
+      <div class="cmd-row">
+        <input id="cmdInput" type="text" maxlength="160" autocomplete="off" placeholder="whisper an instruction…" aria-label="Instruction for the selected character">
+        <button class="btn" id="cmdBtn" type="button">SEND</button>
+      </div>
+      <div class="hint">They'll fold it into their next decision, in character.</div>
+    </div>
+
+    <div class="hud-section" style="border-bottom:none; padding-bottom:0;">
+      <p class="hud-title">ROSTER</p>
+    </div>
+    <div class="roster" id="roster"></div>
+
+    <div class="log-wrap">
+      <p class="hud-title" style="margin-bottom:8px;">TOWN LOG</p>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createOffice, createHud, connectEvents, escapeHtml } from "/shared/office.js";
+
+  const minds = {};
+  const office = createOffice({
+    canvas: document.getElementById("floor"),
+    brand: "DAXONET",
+    ambientChatter: false,
+    onSelect: () => { hud.refresh(); renderMind(); }
+  });
+  const hud = createHud({
+    office,
+    rosterEl: document.getElementById("roster"),
+    logEl: document.getElementById("log"),
+    detailEl: document.getElementById("detail"),
+    onSelectChange: () => renderMind()
+  });
+
+  function renderMind(){
+    const el = document.getElementById("mind");
+    const m = minds[office.selectedId];
+    if (!m){ el.innerHTML = ""; return; }
+    const list = arr => arr && arr.length ? "<ul>" + arr.map(x => `<li>${escapeHtml(x)}</li>`).join("") + "</ul>" : "<div>—</div>";
+    el.innerHTML =
+      (m.pending ? `<div class="lbl">PENDING INSTRUCTION</div><div><i>${escapeHtml(m.pending)}</i></div>` : "") +
+      `<div class="lbl">THINKING</div><div><i>${escapeHtml(m.thought || "—")}</i></div>` +
+      `<div class="lbl">RECENT MEMORIES</div>${list(m.memories)}` +
+      `<div class="lbl">REFLECTIONS</div>${list(m.reflections)}`;
+  }
+
+  let paused = true;
+  const runBtn = document.getElementById("runBtn");
+  const conn = document.getElementById("conn");
+  const nf = n => n.toLocaleString();
+  connectEvents({
+    office, hud,
+    onStatus: on => { conn.dataset.on = on; conn.textContent = on ? "LIVE" : "OFFLINE - start the server"; },
+    onEvent: e => {
+      if (e.type === "mind"){ minds[e.id] = e; if (e.id === office.selectedId) renderMind(); }
+      if (e.type === "status"){
+        paused = e.paused;
+        runBtn.textContent = paused ? "START" : "PAUSE";
+        runBtn.classList.toggle("warn", !paused);
+        document.getElementById("stStatus").textContent = paused ? "paused" : "running";
+        document.getElementById("stClock").textContent = `${e.clock} (${e.phase})`;
+        document.getElementById("stModel").textContent = e.model;
+        document.getElementById("stCalls").textContent = nf(e.calls) + (e.errors ? ` (${e.errors} failed)` : "");
+        document.getElementById("stTokens").textContent = `${nf(e.input)} / ${nf(e.output)}`;
+        document.getElementById("stCost").textContent = e.cost == null ? "unknown model" : "$" + e.cost.toFixed(3);
+        document.getElementById("budgetHint").textContent = `Capped at ${e.budget} Claude calls per minute. Paused = no spend.`;
+        const box = document.getElementById("authBox");
+        box.hidden = !e.authProblem;
+        box.textContent = e.authProblem ? e.authProblem + " Then restart the server and press START." : "";
+      }
+    }
+  });
+
+  runBtn.addEventListener("click", () => {
+    fetch("/control", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ paused:!paused }) });
+  });
+  const cmdInput = document.getElementById("cmdInput");
+  async function send(){
+    const id = office.selectedId, text = cmdInput.value.trim();
+    if (!id || !text) return;
+    cmdInput.value = "";
+    await fetch("/command", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ id, text }) });
+  }
+  document.getElementById("cmdBtn").addEventListener("click", send);
+  cmdInput.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+</script>
+</body>
+</html>

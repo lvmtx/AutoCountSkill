@@ -1,0 +1,14 @@
+{
+  "name": "daxonet-agent-office",
+  "private": true,
+  "type": "module",
+  "description": "Three ways to put agents in a cyberpunk office: a live Claude Code visualizer, an AI town, and a virtual software company.",
+  "scripts": {
+    "visualizer": "node 1-claude-code-visualizer/server.mjs",
+    "town": "node 2-ai-town/server.mjs",
+    "company": "node 3-virtual-company/server.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0"
+  }
+}

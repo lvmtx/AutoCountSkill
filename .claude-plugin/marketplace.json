@@ -3,7 +3,7 @@
   "owner": {
     "name": "Daxonet"
   },
-  "description": "Internal Daxonet plugins for AutoCount development.",
+  "description": "Internal Daxonet plugins.",
   "plugins": [
     {
       "name": "lvmtx",
@@ -11,6 +11,13 @@
       "description": "Navigate decompiled C# source and the official AutoCount Wiki (Accounting, POS, Server).",
       "version": "1.6.6",
       "category": "development"
+    },
+    {
+      "name": "daxonet-agent-office",
+      "source": "./plugins/daxonet-agent-office",
+      "description": "The DAXONET cyberpunk office: watch Claude Code sessions and subagents as characters, run an AI town, or let a virtual company build small projects.",
+      "version": "1.0.0",
+      "category": "productivity"
     }
   ]
 }
